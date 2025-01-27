@@ -15,8 +15,7 @@ export default function Home() {
             </p>
             <Link
               href="/login"
-              className="mr-6 inline-block items-center rounded-md bg-red-600 px-8 py-4 text-center font-semibold text-white lg:mr-8 hover:bg-red-700 transition-transform duration-300"
-            >
+              className="mr-6 inline-block items-center rounded-md bg-red-600 px-8 py-4 text-center font-semibold text-white lg:mr-8 hover:bg-red-700 transition-transform duration-300">
               Start Quizzing
             </Link>
           </div>
