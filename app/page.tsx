@@ -14,7 +14,7 @@ export default function Home() {
               Challenge yourself and others with our wide variety of quizzes! Test your knowledge and learn something new every day.
             </p>
             <Link
-              href="/login"
+              href="/Login"
               className="mr-6 inline-block items-center rounded-md bg-red-600 px-8 py-4 text-center font-semibold text-white lg:mr-8 hover:bg-red-700 transition-transform duration-300">
               Start Quizzing
             </Link>
