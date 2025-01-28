@@ -5,14 +5,30 @@ import React, { useEffect, useState, FormEvent } from "react";
 import toast from "react-hot-toast";
 import { Toaster } from "react-hot-toast";
 import Image from "next/image";
+import { useAuth } from '../../context/AuthContext';
 
 type LoginResponse = {
-    token: string;
-    message?: string;
+    statusCode: number;
+    message: string;
+    data: {
+        access_token: string;
+        user: {
+            id: number;
+            email: string;
+            password: string;
+            role: string;
+            user_name: string;
+            token: string;
+            createdAt: string;
+            updatedAt: string;
+            deletedAt: string | null;
+        };
+    };
 };
 
 
 export default function Login() {
+    const { setUser, setToken } = useAuth(); // Destructure setUser and setToken from AuthContext
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [buttonDisabled, setButtonDisabled] = useState(false);
@@ -35,8 +51,18 @@ export default function Login() {
                     password,
                 }),
             });
+
             const data: LoginResponse = await response.json();
+
             if (data.message === "LogIn successfully") {
+                // Save token to localStorage
+                const { access_token } = data.data;
+                localStorage.setItem('token', access_token);
+
+                // Set user and token in AuthContext
+                setToken(access_token);
+                setUser({ id: data.data.user.id, email: data.data.user.email, userName: data.data.user.user_name}, access_token);
+
                 toast.success("Login successful!");
                 router.push("/users/admin/Dashboard");
             } else {
