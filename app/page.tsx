@@ -1,7 +1,20 @@
+"use client"
 import Link from "next/link";
 import Image from "next/image";
+import Loader from './components/Loader'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false)
+    }, 1500)
+  }, [])
+
+  if (loading) return <Loader />
+
   return (
     <>
       <main className="mt-0 flex justify-center items-center w-full h-screen relative">

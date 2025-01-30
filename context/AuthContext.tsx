@@ -1,65 +1,64 @@
 'use client';
-import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
-type AuthContextType = {
-    user: {
-      userName: ReactNode; id: number; email: string 
-} | null;
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+interface User {
+    id: number;
+    email: string;
+    userName: string;
+    role: string;  // Add role to User interface
+}
+
+interface AuthContextType {
+    user: User | null;
     token: string | null;
-    setUser: (user: { id: number; email: string, userName:string }, token: string) => void;
-    setToken: (token: string) => void;
+    setUser: (user: User | null, token: string | null) => void;
+    setToken: (token: string | null) => void;
     logout: () => void;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-};
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUserState] = useState<User | null>(null);
+    const [token, setTokenState] = useState<string | null>(null);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<{ id: number; email: string, userName:string } | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-
-    const router = useRouter();
-
-    // Check if user data is stored in localStorage when the component mounts
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
-        
-        if (storedUser && storedToken) {
-            setUser(JSON.parse(storedUser));  // Set the user data from localStorage
-            setToken(storedToken);           // Set the token from localStorage
+    const setUser = (newUser: User | null, newToken: string | null) => {
+        if (newUser) {
+            // Ensure role is included when setting user
+            setUserState({
+                id: newUser.id,
+                email: newUser.email,
+                userName: newUser.userName,
+                role: newUser.role
+            });
+        } else {
+            setUserState(null);
         }
-    }, []);
-
-    // Function to handle login and store user data and token in localStorage
-    const handleLogin = (userData: { id: number; email: string; userName: string }, userToken: string) => {
-        setUser(userData);          // Set user data in state
-        setToken(userToken);        // Set token in state
-        localStorage.setItem('user', JSON.stringify(userData)); // Store user data in localStorage
-        localStorage.setItem('token', userToken); // Store token in localStorage
+        setTokenState(newToken);
     };
 
-    // Logout function to clear context and localStorage
+    const setToken = (newToken: string | null) => {
+        setTokenState(newToken);
+    };
+
     const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('user');
+        setUserState(null);
+        setTokenState(null);
         localStorage.removeItem('token');
-        router.push("/");
-        
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, setUser: handleLogin, setToken, logout }}>
+        <AuthContext.Provider value={{ user, token, setUser, setToken, logout }}>
             {children}
         </AuthContext.Provider>
     );
-};
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+}

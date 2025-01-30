@@ -26,9 +26,8 @@ type LoginResponse = {
     };
 };
 
-
 export default function Login() {
-    const { setUser, setToken } = useAuth(); // Destructure setUser and setToken from AuthContext
+    const { setUser, setToken } = useAuth(); 
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [buttonDisabled, setButtonDisabled] = useState(false);
@@ -55,16 +54,24 @@ export default function Login() {
             const data: LoginResponse = await response.json();
 
             if (data.message === "LogIn successfully") {
-                // Save token to localStorage
-                const { access_token } = data.data;
+                const { access_token, user } = data.data;
+                console.log("Token:", access_token);
                 localStorage.setItem('token', access_token);
 
-                // Set user and token in AuthContext
                 setToken(access_token);
-                setUser({ id: data.data.user.id, email: data.data.user.email, userName: data.data.user.user_name}, access_token);
+                setUser({
+                    id: user.id,
+                    email: user.email,
+                    userName: user.user_name,
+                    role: user.role
+                }, access_token);
 
                 toast.success("Login successful!");
-                router.push("/users/admin/Dashboard");
+                if (user.role === 'admin') {
+                    router.push("/users/admin/Dashboard");
+                } else {
+                    router.push("/users/student/Dashboard");
+                }
             } else {
                 toast.error(data.message);
             }
