@@ -50,7 +50,7 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 flex items-center justify-center">
             <div className="w-full max-w-4xl">
-                <div className="backdrop-blur-sm bg-white/80 rounded-md shadow-2xl p-8 border border-red-100/50">
+                <div className="backdrop-blur-sm bg-white/80 rounded-lg shadow-2xl p-8 border border-red-100/50">
                     <div className="w-full max-w-2xl mx-auto">
                         <div className="flex items-center gap-8 mb-12">
                             <div className="w-32 h-32 bg-gradient-to-br from-red-500 to-rose-600 rounded-full shadow-lg flex items-center justify-center">

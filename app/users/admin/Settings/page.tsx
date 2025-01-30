@@ -17,7 +17,7 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100 flex items-center justify-center">
       <div className="w-full max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl p-8 space-y-8">
+        <div className="bg-white border border-slate-200 rounded-lg shadow-2xl p-8 space-y-8">
           <h1 className="text-2xl font-bold text-slate-800 text-center">Dashboard Settings</h1>
 
           <form onSubmit={handleSave} className="space-y-8">
