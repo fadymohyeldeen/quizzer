@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation';
 const AddQuizPage: React.FC = () => {
     const { token, user } = useAuth();
     const router = useRouter();
-    
+
     const [field, setField] = useState('');
     const [topic, setTopic] = useState('');
     const [question, setQuestion] = useState('');
     const [answers, setAnswers] = useState(['', '', '', '']);
     const [correctAnswer, setCorrectAnswer] = useState(-1);
-    const [type] = useState('choose'); 
+    const [type] = useState('choose');
 
     const fieldOptions = ['Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology'];
     const topicOptions = {
@@ -47,10 +47,10 @@ const AddQuizPage: React.FC = () => {
                 },
                 body: JSON.stringify({
                     user_id: 1,
-                    topic_id: 1, 
+                    topic_id: 1,
                     type: type,
                     question: question,
-                    answer: answers[correctAnswer] 
+                    answer: answers[correctAnswer]
                 }),
             });
 

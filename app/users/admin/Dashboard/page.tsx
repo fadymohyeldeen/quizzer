@@ -4,18 +4,25 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FaUsers, FaClipboardList, FaChartBar, FaClock } from 'react-icons/fa';
+import { FaUsers, FaClipboardList, FaLayerGroup, FaClock, FaBookOpen } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, LineChart, Line, ResponsiveContainer } from 'recharts';
+import Loader from '@/app/components/Loader';
 
 export default function Dashboard() {
     const { user, token, logout } = useAuth();
     const router = useRouter();
+    const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
         totalQuizzes: 0,
         activeQuizzes: 0,
         completedQuizzes: 0
     });
+
+    const handleLogout = () => {
+        logout();
+        router.push('/Login');
+    };
 
     const completionData = [
         { quiz: 'Quiz 1', rate: 75 },
@@ -33,21 +40,24 @@ export default function Dashboard() {
     ];
 
     useEffect(() => {
-        if (!user || !token) {
+        if (!token) {
             router.push('/Login');
+            return;
         }
-        if (user?.role !== 'admin') {
-            router.push('/users/student/Dashboard');
+
+        // Wait for user data to be available
+        if (user) {
+            setLoading(false);
+            if (user.role !== 'admin') {
+                router.push('/users/student/Dashboard');
+            }
         }
     }, [user, token, router]);
 
-    const handleLogout = () => {
-        logout();
-        router.push('/Login');
-    };
-
-    if (!user) {
-        return <div>Loading...</div>;
+    if (loading || !user) {
+        return (
+            <Loader />
+        );
     }
 
     return (
@@ -64,7 +74,30 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
-
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-600 text-sm">Total Fields</p>
+                            <h3 className="text-2xl font-semibold text-gray-800">{stats.activeQuizzes}</h3>
+                        </div>
+                        <div className="p-3 bg-red-100 rounded-full">
+                            <FaLayerGroup className="text-red-600 text-xl" />
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-600 text-sm">Total Topics</p>
+                            <h3 className="text-2xl font-semibold text-gray-800">{stats.activeQuizzes}</h3>
+                        </div>
+                        <div className="p-3 bg-red-100 rounded-full">
+                            <FaBookOpen className="text-red-600 text-xl" />
+                        </div>
+                    </div>
+                </div>
+                
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">
                         <div>
@@ -77,17 +110,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 text-sm">Active Quizzes</p>
-                            <h3 className="text-2xl font-semibold text-gray-800">{stats.activeQuizzes}</h3>
-                        </div>
-                        <div className="p-3 bg-red-100 rounded-full">
-                            <FaChartBar className="text-red-600 text-xl" />
-                        </div>
-                    </div>
-                </div>
+
 
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">

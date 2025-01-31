@@ -27,7 +27,7 @@ type LoginResponse = {
 };
 
 export default function Login() {
-    const { setUser, setToken } = useAuth(); 
+    const { setUser, setToken } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [buttonDisabled, setButtonDisabled] = useState(false);
@@ -57,6 +57,7 @@ export default function Login() {
                 const { access_token, user } = data.data;
                 console.log("Token:", access_token);
                 localStorage.setItem('token', access_token);
+                document.cookie = `token=${access_token}; path=/; max-age=86400; secure; samesite=strict`;
 
                 setToken(access_token);
                 setUser({
