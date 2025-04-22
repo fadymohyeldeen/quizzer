@@ -7,18 +7,33 @@ import toast, { Toaster } from 'react-hot-toast';
 
 interface Question {
     id: number;
+    user_id: number;
+    topic_id: number;
+    type: 'choose' | 'true or false';
     question: string;
-    options: string[];
-    correctAnswer: string;
-    topicId: number;
+    answer: string;
     createdAt?: string;
     updatedAt?: string;
+}
+
+// Add this interface
+interface Choices {
+    question_id: number;
+    answer_a: string;
+    answer_b: string;
+    answer_c: string;
+    answer_d: string;
 }
 
 interface APIResponse {
     statusCode: number;
     data: Question[];
     message: string;
+}
+
+interface Topic {
+    id: number;
+    name: string;
 }
 
 const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', existingQuestions = [] }: {
@@ -31,76 +46,103 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
     existingQuestions?: Question[];
 }) => {
     const [question, setQuestion] = useState(item?.question || '');
-    const [options, setOptions] = useState<string[]>(item?.options || ['', '', '', '']);
-    const [correctAnswer, setCorrectAnswer] = useState(item?.correctAnswer || '');
+    const [type, setType] = useState<'choose' | 'true or false'>(item?.type || 'choose');
+    const [answer, setAnswer] = useState(item?.answer || '');
+    const [selectedTopicId, setSelectedTopicId] = useState(item?.topic_id || '');
+    const [topics, setTopics] = useState<Topic[]>([]);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState('');
+    const [choices, setChoices] = useState({
+        answer_a: '',
+        answer_b: '',
+        answer_c: '',
+        answer_d: ''
+    });
+
+    useEffect(() => {
+        const fetchTopics = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/topics', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    setTopics(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch topics:', error);
+            }
+        };
+        fetchTopics();
+    }, [token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
         setError('');
 
-        if (options.some(opt => !opt.trim())) {
-            setError('All options must be filled');
-            toast.error('All options must be filled');
-            setProcessing(false);
-            return;
-        }
-
-        if (!correctAnswer) {
-            setError('Please select a correct answer');
-            toast.error('Please select a correct answer');
-            setProcessing(false);
-            return;
-        }
-
         try {
-            const url = mode === 'edit'
+            // First create/update the question
+            const questionUrl = mode === 'edit'
                 ? `http://localhost:5000/question/${item?.id}`
                 : 'http://localhost:5000/question';
 
-            const method = mode === 'edit' ? 'PATCH' : 'POST';
-            const body = { 
-                question, 
-                options, 
-                correctAnswer,
-                topicId: item?.topicId 
+            const questionMethod = mode === 'edit' ? 'PATCH' : 'POST';
+            const questionBody = {
+                topic_id: Number(selectedTopicId),
+                type,
+                question,
+                answer
             };
 
-            const response = await fetch(url, {
-                method,
+            const questionResponse = await fetch(questionUrl, {
+                method: questionMethod,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(questionBody)
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                onSubmit(result.data);
-                onClose();
-                toast.success(`Question ${mode === 'edit' ? 'updated' : 'created'} successfully`);
+            if (questionResponse.ok) {
+                const questionResult = await questionResponse.json();
+                const questionId = questionResult.data.id;
+
+                // Then create/update the choices
+                const choicesUrl = 'http://localhost:5000/choices';
+                const choicesBody: Choices = {
+                    question_id: questionId,
+                    ...choices
+                };
+
+                const choicesResponse = await fetch(choicesUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(choicesBody)
+                });
+
+                if (choicesResponse.ok) {
+                    onSubmit(questionResult.data);
+                    onClose();
+                    toast.success(`Question ${mode === 'edit' ? 'updated' : 'created'} successfully`);
+                } else {
+                    throw new Error('Failed to save choices');
+                }
             } else {
-                setError(`Failed to ${mode} question`);
-                toast.error(`Failed to ${mode} question`);
+                throw new Error(`Failed to ${mode} question`);
             }
         } catch (error) {
-            setError(`An error occurred`);
-            toast.error(`An error occurred`);
+            setError(error instanceof Error ? error.message : 'An error occurred');
+            toast.error(error instanceof Error ? error.message : 'An error occurred');
         } finally {
             setProcessing(false);
         }
     };
-
-    const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...options];
-        newOptions[index] = value;
-        setOptions(newOptions);
-    };
-
-    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -110,36 +152,70 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                        <select
+                            value={selectedTopicId}
+                            onChange={(e) => setSelectedTopicId(e.target.value)}
+                            className="w-full p-2 border rounded"
+                            required
+                        >
+                            <option value="">Select a topic</option>
+                            {topics.map((topic) => (
+                                <option key={topic.id} value={topic.id}>
+                                    {topic.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+                        <select
+                            value={type}
+                            onChange={(e) => setType(e.target.value as 'choose' | 'true or false')}
+                            className="w-full p-2 border rounded"
+                            required
+                        >
+                            <option value="choose">Multiple Choice</option>
+                            <option value="true or false">True or False</option>
+                        </select>
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
                         <textarea
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             className="w-full p-2 border rounded"
                             rows={3}
-                            placeholder="Enter question"
                             required
                         />
                     </div>
-                    
+
                     <div className="space-y-3">
-                        <label className="block text-sm font-medium text-gray-700">Options</label>
-                        {options.map((option, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    name="correctAnswer"
-                                    checked={option === correctAnswer}
-                                    onChange={() => setCorrectAnswer(option)}
-                                    className="h-4 w-4 text-red-600"
-                                />
-                                <input
-                                    type="text"
-                                    value={option}
-                                    onChange={(e) => handleOptionChange(index, e.target.value)}
-                                    className="w-full p-2 border rounded"
-                                    placeholder={`Option ${index + 1}`}
-                                    required
-                                />
+                        <label className="block text-sm font-medium text-gray-700">Choices</label>
+                        {['a', 'b', 'c', 'd'].map((choice) => (
+                            <div key={choice}>
+                                <label className="block text-sm text-gray-600 mb-1">Choice {choice.toUpperCase()}</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="radio"
+                                        name="answer"
+                                        value={choices[`answer_${choice}` as keyof typeof choices]}
+                                        onChange={() => setAnswer(choices[`answer_${choice}` as keyof typeof choices])}
+                                        className="mt-2"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={choices[`answer_${choice}` as keyof typeof choices]}
+                                        onChange={(e) => setChoices({
+                                            ...choices,
+                                            [`answer_${choice}`]: e.target.value
+                                        })}
+                                        className="w-full p-2 border rounded"
+                                        required
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -176,6 +252,7 @@ function Page() {
     const [error, setError] = useState<string | null>(null);
     const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [topicFilter, setTopicFilter] = useState<string | null>(null);
 
     useEffect(() => {
         if (!token) {
@@ -217,6 +294,18 @@ function Page() {
 
         fetchQuestions();
     }, [token, router, user?.role]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const topicId = params.get('topic');
+        if (topicId) {
+            setTopicFilter(topicId);
+        }
+    }, []);
+
+    const filteredQuestions = topicFilter
+        ? questions.filter(q => q.topic_id.toString() === topicFilter)
+        : questions;
 
     const handleUpdateQuestion = (updatedQuestion: Question) => {
         setQuestions(questions.map(question =>
@@ -326,7 +415,7 @@ function Page() {
                     ) : (
                         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                             <div className="divide-y divide-zinc-200">
-                                {questions.map((question) => (
+                                {filteredQuestions.map((question) => (
                                     <div key={question.id} className="p-6 hover:bg-zinc-50">
                                         <div className="flex justify-between items-start mb-4">
                                             <h3 className="text-lg font-medium text-zinc-900">{question.question}</h3>

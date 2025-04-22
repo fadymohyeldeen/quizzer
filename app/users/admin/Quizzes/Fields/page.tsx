@@ -190,6 +190,54 @@ const TopicList = ({ topics }: { topics: Topic[] }) => {
     );
 };
 
+// Add TopicsModal component
+const TopicsModal = ({ field, isOpen, onClose, token, onTopicDelete, onTopicEdit }: {
+    field: Field;
+    isOpen: boolean;
+    onClose: () => void;
+    token: string;
+    onTopicDelete: (topicId: number) => void;
+    onTopicEdit: (topic: Topic) => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-[32rem] max-h-[80vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Topics in {field.name}</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="divide-y divide-gray-200">
+                    {field.topics?.map((topic) => (
+                        <div key={topic.id} className="py-3 flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-900">{topic.name}</span>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => onTopicEdit(topic)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => onTopicDelete(topic.id)}
+                                    className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function Page() {
     const { token, user } = useAuth();
     const router = useRouter();
@@ -200,6 +248,8 @@ function Page() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
     const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
+    const [selectedField, setSelectedField] = useState<Field | null>(null);
+    const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
     useEffect(() => {
         if (!token) {
@@ -258,7 +308,21 @@ function Page() {
     };
 
     const handleAddTopic = async (topic: Topic) => {
-        router.push(`/users/admin/Quizzes/Topics/${topic.fieldId}`);
+        // Update the fields state to include the new topic
+        setFields(prevFields => prevFields.map(field => {
+            if (field.id === Number(topic.field_id)) {
+                return {
+                    ...field,
+                    topics: [...(field.topics || []), topic]
+                };
+            }
+            return field;
+        }));
+        
+        // Close the modal
+        setIsAddTopicModalOpen(false);
+        setSelectedFieldId(null);
+        toast.success('Topic added successfully');
     };
 
     const handleDeleteField = async (fieldId: number) => {
@@ -308,6 +372,64 @@ function Page() {
         });
     };
 
+    const handleTopicDelete = async (topicId: number) => {
+        toast((t) => (
+            <div className="flex flex-col gap-2 text-center">
+                <p>Are you sure you want to delete this topic?</p>
+                <div className="flex gap-2 justify-center">
+                    <button
+                        className="px-3 py-2 bg-red-500 text-white rounded-md text-sm"
+                        onClick={async () => {
+                            toast.dismiss(t.id);
+                            try {
+                                const response = await fetch(`http://localhost:5000/topics/${topicId}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+
+                                if (response.ok) {
+                                    // Update the fields state to reflect the deleted topic
+                                    setFields(fields.map(field => ({
+                                        ...field,
+                                        topics: field.topics.filter(t => t.id !== topicId)
+                                    })));
+                                    toast.success('Topic deleted successfully');
+                                } else {
+                                    toast.error('Failed to delete topic');
+                                }
+                            } catch (error) {
+                                toast.error('Something went wrong');
+                            }
+                        }}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="px-3 py-2 bg-gray-200 text-black rounded-md text-sm"
+                        onClick={() => toast.dismiss(t.id)}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        ));
+    };
+
+    const handleTopicEdit = async (topic: Topic) => {
+        // Update the fields state with the edited topic
+        setFields(fields.map(field => ({
+            ...field,
+            topics: field.topics.map(t => 
+                t.id === topic.id ? topic : t
+            )
+        })));
+        
+        setSelectedField(null); // Close the modal
+        toast.success('Topic updated successfully');
+    };
+
     if (loading) {
         return (
             <Loader />
@@ -353,7 +475,7 @@ function Page() {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            Add New Field
+                            Add a New Field
                         </button>
                     </div>
                     {fields.length === 0 ? (
@@ -365,12 +487,10 @@ function Page() {
                                     </svg>
                                 </div>
                                 <h3 className="text-xl font-semibold text-zinc-800 mb-4">No Fields Available</h3>
-                                <p className="text-zinc-500 mb-8">Start by creating your first field to manage quizzes</p>
-                                <Link href="/users/admin/Quizzes/AddField">
-                                    <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200">
-                                        Add New Field
-                                    </button>
-                                </Link>
+                                <p className="text-zinc-500 mb-8">Start by adding a new field</p>
+                                <button className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200">
+                                    Add a New Field
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -383,6 +503,9 @@ function Page() {
                                         </th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                                             Created At
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                                            Topics Count
                                         </th>
                                         <th scope="col" className="relative px-6 py-3 text-center" colSpan={4}>
                                             <span className="sr-only">Actions</span>
@@ -397,6 +520,9 @@ function Page() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-zinc-500">{new Date(field.createdAt || '').toLocaleDateString()}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-zinc-500">{field.topics?.length || 0}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
@@ -418,9 +544,12 @@ function Page() {
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <Link href={`/users/admin/Quizzes/${field.id}`}>
-                                                    <button className="text-blue-600 hover:text-blue-900">View Topics</button>
-                                                </Link>
+                                                <button
+                                                    onClick={() => setSelectedField(field)}
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                >
+                                                    View Topics
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
@@ -474,6 +603,16 @@ function Page() {
                     mode="add"
                     type="Topic"
                     fieldId={selectedFieldId}
+                />
+            )}
+            {selectedField && (
+                <TopicsModal
+                    field={selectedField}
+                    isOpen={!!selectedField}
+                    onClose={() => setSelectedField(null)}
+                    token={token}
+                    onTopicDelete={handleTopicDelete}
+                    onTopicEdit={handleTopicEdit}
                 />
             )}
         </div>

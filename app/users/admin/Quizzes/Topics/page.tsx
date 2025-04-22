@@ -16,13 +16,19 @@ interface Question {
     updatedAt?: string;
 }
 
+interface Field {
+    id: number;
+    name: string;
+}
+
 interface Topic {
     id: number;
     name: string;
-    fieldId: number;
+    field_id: number;
     questions: Question[];
     createdAt?: string;
     updatedAt?: string;
+    field?: { id: number; name: string };
 }
 
 interface APIResponse {
@@ -41,8 +47,30 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
     existingTopics?: Topic[];
 }) => {
     const [name, setName] = useState(item?.name || '');
+    const [selectedFieldId, setSelectedFieldId] = useState(item?.field_id || '');
+    const [fields, setFields] = useState<Field[]>([]);
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchFields = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/fields', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    setFields(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch fields:', error);
+                toast.error('Failed to load fields');
+            }
+        };
+        fetchFields();
+    }, [token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,6 +78,13 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
         setError('');
 
         try {
+            if (!selectedFieldId) {
+                setError('Please select a field');
+                toast.error('Please select a field');
+                setProcessing(false);
+                return;
+            }
+
             const isDuplicate = existingTopics.some(topic =>
                 topic.name.toLowerCase() === name.toLowerCase() &&
                 (!item || topic.id !== item.id)
@@ -64,10 +99,13 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
 
             const url = mode === 'edit'
                 ? `http://localhost:5000/topics/${item?.id}`
-                : `http://localhost:5000/topics`;
+                : 'http://localhost:5000/topics';
 
             const method = mode === 'edit' ? 'PATCH' : 'POST';
-            const body = { name, fieldId: item?.fieldId };
+            const body = {
+                name,
+                field_id: Number(selectedFieldId)
+            };
 
             const response = await fetch(url, {
                 method,
@@ -80,16 +118,19 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
 
             if (response.ok) {
                 const result = await response.json();
-                onSubmit(result.data);
+                const newTopic = {
+                    ...result.data,
+                    field: fields.find(f => f.id === Number(selectedFieldId))
+                };
+                onSubmit(newTopic);
                 onClose();
                 toast.success(`Topic ${mode === 'edit' ? 'updated' : 'created'} successfully`);
             } else {
-                setError(`Failed to ${mode} topic`);
-                toast.error(`Failed to ${mode} topic`);
+                throw new Error(`Failed to ${mode} topic`);
             }
         } catch (error) {
-            setError(`An error occurred while ${mode}ing`);
-            toast.error(`An error occurred`);
+            setError(error instanceof Error ? error.message : 'An error occurred');
+            toast.error(error instanceof Error ? error.message : 'An error occurred');
         } finally {
             setProcessing(false);
         }
@@ -103,15 +144,38 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
                 <h2 className="text-xl font-semibold mb-4">
                     {mode === 'edit' ? 'Edit Topic' : 'Add New Topic'}
                 </h2>
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full p-2 border rounded mb-4"
-                        placeholder="Enter topic name"
-                    />
-                    {error && <p className="text-red-500 mb-4">{error}</p>}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+                        <select
+                            value={selectedFieldId}
+                            onChange={(e) => setSelectedFieldId(e.target.value)}
+                            className="w-full p-2 border rounded"
+                            required
+                        >
+                            <option value="">Select a field</option>
+                            {fields.map((field) => (
+                                <option key={field.id} value={field.id}>
+                                    {field.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Topic Name</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full p-2 border rounded"
+                            placeholder="Enter topic name"
+                            required
+                        />
+                    </div>
+
+                    {error && <p className="text-red-500">{error}</p>}
+                    
                     <div className="flex justify-end gap-2">
                         <button
                             type="button"
@@ -157,25 +221,30 @@ function Page() {
         const fetchTopics = async () => {
             try {
                 setError(null);
-                const response = await fetch('http://localhost:5000/topics', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const [topicsResponse, fieldsResponse] = await Promise.all([
+                    fetch('http://localhost:5000/topics', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }),
+                    fetch('http://localhost:5000/fields', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    })
+                ]);
 
-                if (response.status === 401) {
-                    const errorData = await response.json();
-                    setError(errorData.message || 'Unauthorized access');
-                    router.push('/Login');
-                    return;
-                }
-
-                if (response.ok) {
-                    const responseData: APIResponse = await response.json();
-                    setTopics(responseData.data);
-                } else {
-                    setError('Failed to fetch topics');
+                if (topicsResponse.ok && fieldsResponse.ok) {
+                    const topicsData = await topicsResponse.json();
+                    const fieldsData = await fieldsResponse.json();
+                    
+                    // Attach field information to each topic
+                    const topicsWithFields = topicsData.data.map((topic: Topic) => ({
+                        ...topic,
+                        field: fieldsData.data.find((field: Field) => field.id === topic.field_id)
+                    }));
+                    
+                    setTopics(topicsWithFields);
                 }
             } catch (error) {
                 setError('Failed to fetch topics');
@@ -184,8 +253,35 @@ function Page() {
             }
         };
 
-        fetchTopics();
+        if (token) {
+            fetchTopics();
+        }
     }, [token, router, user?.role]);
+
+    useEffect(() => {
+        const fetchTopics = async () => {
+            try {
+                setError(null);
+                const response = await fetch('http://localhost:5000/topics', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const responseData: APIResponse = await response.json();
+                    setTopics(responseData.data);
+                }
+            } catch (error) {
+                setError('Failed to fetch topics');
+            }
+        };
+
+        if (token) {
+            fetchTopics();
+        }
+    }, [token]); // This will run when the component mounts
 
     const handleUpdateTopic = (updatedTopic: Topic) => {
         setTopics(topics.map(topic =>
@@ -274,7 +370,7 @@ function Page() {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            Add New Topic
+                            Add a New Topic
                         </button>
                     </div>
 
@@ -283,16 +379,16 @@ function Page() {
                             <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md w-full">
                                 <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeL inejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
                                 </div>
                                 <h3 className="text-xl font-semibold text-zinc-800 mb-4">No Topics Available</h3>
-                                <p className="text-zinc-500 mb-8">Start by creating your first topic</p>
+                                <p className="text-zinc-500 mb-8">Start by adding a new topic</p>
                                 <button
                                     onClick={() => setIsAddModalOpen(true)}
                                     className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200"
                                 >
-                                    Create New Topic
+                                    Add a New Topic
                                 </button>
                             </div>
                         </div>
@@ -303,6 +399,9 @@ function Page() {
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                                             Topic Name
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                                            Associated Field
                                         </th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                                             Created At
@@ -322,6 +421,9 @@ function Page() {
                                                 <div className="text-sm font-medium text-zinc-900">{topic.name}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-zinc-500">{topic.field?.name || 'N/A'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-zinc-500">
                                                     {new Date(topic.createdAt || '').toLocaleDateString()}
                                                 </div>
@@ -338,7 +440,7 @@ function Page() {
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <Link href={`/users/admin/Quizzes/Questions/${topic.id}`}>
+                                                <Link href={`/users/admin/Quizzes/Questions?topic=${topic.id}`}>
                                                     <button className="text-blue-600 hover:text-blue-900">
                                                         Manage Questions
                                                     </button>

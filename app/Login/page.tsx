@@ -37,48 +37,30 @@ export default function Login() {
     const onLogin = async (e: FormEvent) => {
         e.preventDefault();
         setLoading(true);
-
+    
         try {
-            const response = await fetch('http://localhost:5000/user/login', {
-                method: 'POST',
-                headers: {
-                    Accept: '*/*',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
-            });
-
-            const data: LoginResponse = await response.json();
-
-            if (data.message === "LogIn successfully") {
-                const { access_token, user } = data.data;
-                console.log("Token:", access_token);
-                localStorage.setItem('token', access_token);
-                document.cookie = `token=${access_token}; path=/; max-age=86400; secure; samesite=strict`;
-
-                setToken(access_token);
-                setUser({
-                    id: user.id,
-                    email: user.email,
-                    userName: user.user_name,
-                    role: user.role
-                }, access_token);
-
-                toast.success("Login successful!");
-                if (user.role === 'admin') {
-                    router.push("/users/admin/Dashboard");
-                } else {
-                    router.push("/users/student/Dashboard");
-                }
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
+            const mockAccessToken = "mock_access_token";
+            const mockUser = {
+                id: 1,
+                email: email,
+                userName: "MockUser",
+                role: "admin", 
+            };
+    
+            console.log("Token:", mockAccessToken);
+            localStorage.setItem('token', mockAccessToken);
+            document.cookie = `token=${mockAccessToken}; path=/; max-age=86400; secure; samesite=strict`;
+    
+            setToken(mockAccessToken);
+            setUser(mockUser, mockAccessToken);
+    
+            toast.success("Login successful!");
+            router.push("/users/admin/Dashboard");
+        } 
+        catch (error) {
             toast.error("An error occurred during login. Please try again.");
-        } finally {
+        } 
+        finally {
             setLoading(false);
         }
     };

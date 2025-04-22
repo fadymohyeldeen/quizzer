@@ -52,21 +52,21 @@ function Page() {
       title: 'Fields',
       description: 'Manage quiz fields and categories',
       icon: <BiCategory size={24} />,
-      addLink: '/users/admin/Quizzes/Fields/add',
+      addLink: '/users/admin/Quizzes/Fields',
       viewLink: '/users/admin/Quizzes/Fields'
     },
     {
       title: 'Topics',
       description: 'Manage topics within fields',
       icon: <MdOutlineTopic size={24} />,
-      addLink: '/users/admin/Quizzes/Topics/add',
+      addLink: '/users/admin/Quizzes/Topics',
       viewLink: '/users/admin/Quizzes/Topics'
     },
     {
       title: 'Questions',
       description: 'Manage quiz questions',
       icon: <BsQuestionLg size={24} />,
-      addLink: '/users/admin/Quizzes/Questions/add',
+      addLink: '/users/admin/Quizzes/Questions',
       viewLink: '/users/admin/Quizzes/Questions'
     }
   ];
