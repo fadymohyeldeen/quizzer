@@ -34,9 +34,13 @@ export async function getCurrentUser(token: string): Promise<UserResponse> {
         throw new Error('No authentication token provided');
     }
 
+    if (typeof window === 'undefined') {
+        return Promise.reject(new Error('localStorage is not available on the server'));
+    }
+
     const userData = localStorage.getItem('user');
     const parsedData = userData ? JSON.parse(userData) : null;
-    
+
     if (!parsedData?.id) {
         throw new Error('User ID not found');
     }

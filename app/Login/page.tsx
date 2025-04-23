@@ -44,23 +44,24 @@ export default function Login() {
                 id: 1,
                 email: email,
                 userName: "MockUser",
-                role: "admin", 
+                role: "admin",
             };
     
             console.log("Token:", mockAccessToken);
-            localStorage.setItem('token', mockAccessToken);
-            document.cookie = `token=${mockAccessToken}; path=/; max-age=86400; secure; samesite=strict`;
+    
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', mockAccessToken);
+                document.cookie = `token=${mockAccessToken}; path=/; max-age=86400; secure; samesite=strict`;
+            }
     
             setToken(mockAccessToken);
             setUser(mockUser, mockAccessToken);
     
             toast.success("Login successful!");
             router.push("/users/admin/Dashboard");
-        } 
-        catch (error) {
+        } catch (error) {
             toast.error("An error occurred during login. Please try again.");
-        } 
-        finally {
+        } finally {
             setLoading(false);
         }
     };

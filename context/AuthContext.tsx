@@ -25,12 +25,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUserState] = useState<User | null>(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
+        if (typeof window !== 'undefined') { // Ensure this runs only on the client
+            const savedUser = localStorage.getItem('user');
+            return savedUser ? JSON.parse(savedUser) : null;
+        }
+        return null;
     });
 
     const [token, setTokenState] = useState<string | null>(() => {
-        return localStorage.getItem('token');
+        if (typeof window !== 'undefined') { // Ensure this runs only on the client
+            return localStorage.getItem('token');
+        }
+        return null;
     });
 
     const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const initializeAuth = async () => {
+            if (typeof window === 'undefined') return; // Ensure this runs only on the client
+
             const savedToken = localStorage.getItem('token');
             if (savedToken) {
                 try {
@@ -61,43 +69,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (user) {
+        if (typeof window !== 'undefined' && user) { // Ensure this runs only on the client
             localStorage.setItem('user', JSON.stringify(user));
         }
     }, [user]);
 
     useEffect(() => {
-        if (token) {
+        if (typeof window !== 'undefined' && token) { // Ensure this runs only on the client
             localStorage.setItem('token', token);
         }
     }, [token]);
 
     const setUser = (newUser: User | null, newToken: string | null) => {
-        if (newUser) {
-            setUserState(newUser);
-            localStorage.setItem('user', JSON.stringify(newUser));
-        } else {
-            setUserState(null);
-            localStorage.removeItem('user');
-        }
-        setTokenState(newToken);
-        if (newToken) {
-            localStorage.setItem('token', newToken);
-        } else {
-            localStorage.removeItem('token');
+        if (typeof window !== 'undefined') { // Ensure this runs only on the client
+            if (newUser) {
+                setUserState(newUser);
+                localStorage.setItem('user', JSON.stringify(newUser));
+            } else {
+                setUserState(null);
+                localStorage.removeItem('user');
+            }
+            setTokenState(newToken);
+            if (newToken) {
+                localStorage.setItem('token', newToken);
+            } else {
+                localStorage.removeItem('token');
+            }
         }
     };
 
     const setToken = (newToken: string | null) => {
-        setTokenState(newToken);
+        if (typeof window !== 'undefined') { // Ensure this runs only on the client
+            setTokenState(newToken);
+        }
     };
 
     const logout = () => {
-        setUserState(null);
-        setTokenState(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        if (typeof window !== 'undefined') { // Ensure this runs only on the client
+            setUserState(null);
+            setTokenState(null);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
     };
 
     const login = async (email: string, password: string) => {
