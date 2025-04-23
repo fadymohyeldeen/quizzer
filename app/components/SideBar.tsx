@@ -11,16 +11,18 @@ import { MdOutlineDashboard, MdKeyboardArrowDown, MdKeyboardArrowRight } from "r
 import { FaRegQuestionCircle } from "react-icons/fa";
 import { CgProfile } from "react-icons/cg";
 import { IoSettingsOutline } from "react-icons/io5";
-import { BiCategory } from 'react-icons/bi'; // Add for Fields
-import { MdOutlineTopic } from 'react-icons/md'; // Add for Topics
-import { BsQuestionLg } from 'react-icons/bs'; // Add for Questions
+import { BiCategory } from 'react-icons/bi'; 
+import { MdOutlineTopic } from 'react-icons/md';
+import { BsQuestionLg } from 'react-icons/bs';
 
-function SideBar({ children }) {
+import { ReactNode } from "react";
+
+function SideBar({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isQuizzesOpen, setIsQuizzesOpen] = useState(false);
   const pathname = usePathname();
 
-  const isActive = (path) => pathname === path;
+  const isActive = (path: string) => pathname === path;
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
