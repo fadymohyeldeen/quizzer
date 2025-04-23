@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Loader from '@/app/components/Loader';
-import toast, { Toaster } from 'react-hot-toast';
+import toast, { Toast } from 'react-hot-toast'; 
 
 interface Question {
     id: number;
@@ -294,7 +294,7 @@ function Page() {
     };
 
     const handleDeleteTopic = async (topicId: number) => {
-        toast((t) => (
+        toast((t:Toast) => (
             <div className="flex flex-col gap-2 text-center">
                 <p>This action will permanently remove this topic and its questions. Are you sure?</p>
                 <div className="flex gap-2 justify-center">
