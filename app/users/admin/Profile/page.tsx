@@ -21,7 +21,7 @@ export default function ProfilePage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        console.log('Current user:', user?.userName); // Debug log
+        console.log('Current user:', user?.userName); 
         if (user) {
             setProfile({
                 id: user.id,
@@ -48,7 +48,6 @@ export default function ProfilePage() {
         setIsSubmitting(true);
         
         try {
-            // Add your API call here to update the profile
             setProfile({ ...profile, ...formData } as UserProfile);
             setIsEditing(false);
         } catch (error) {
@@ -58,7 +57,6 @@ export default function ProfilePage() {
         }
     };
 
-    // Add loading state check
     if (!user) return <div>Loading user data...</div>;
     if (!profile) return <div>Loading profile...</div>;
 

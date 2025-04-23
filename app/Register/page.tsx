@@ -23,7 +23,7 @@ const Register: React.FC = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user", // Default role
+    role: "user", 
   });
 
   const [buttonDisabled, setButtonDisabled] = useState(false);

@@ -12,11 +12,11 @@ interface Question {
     type: 'choose' | 'true or false';
     question: string;
     answer: string;
+    options?: string[];
     createdAt?: string;
     updatedAt?: string;
 }
 
-// Add this interface
 interface Choices {
     question_id: number;
     answer_a: string;
@@ -36,7 +36,7 @@ interface Topic {
     name: string;
 }
 
-const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', existingQuestions = [] }: {
+const FormModal = ({ item, onClose, onSubmit, token, mode = 'add' }: {
     item?: Question;
     isOpen: boolean;
     onClose: () => void;
@@ -84,7 +84,6 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
         setError('');
 
         try {
-            // First create/update the question
             const questionUrl = mode === 'edit'
                 ? `http://localhost:5000/question/${item?.id}`
                 : 'http://localhost:5000/question';
@@ -110,7 +109,6 @@ const FormModal = ({ item, isOpen, onClose, onSubmit, token, mode = 'add', exist
                 const questionResult = await questionResponse.json();
                 const questionId = questionResult.data.id;
 
-                // Then create/update the choices
                 const choicesUrl = 'http://localhost:5000/choices';
                 const choicesBody: Choices = {
                     question_id: questionId,
@@ -435,11 +433,11 @@ function Page() {
                                             </div>
                                         </div>
                                         <div className="ml-4 space-y-2">
-                                            {question.options.map((option, index) => (
+                                            {question.options?.map((option, index) => (
                                                 <div
                                                     key={index}
                                                     className={`p-2 rounded ${
-                                                        option === question.correctAnswer
+                                                        option === question.answer
                                                             ? 'bg-green-50 text-green-700 font-medium'
                                                             : 'text-zinc-600'
                                                     }`}
@@ -460,11 +458,11 @@ function Page() {
                     isOpen={isAddModalOpen}
                     onClose={() => setIsAddModalOpen(false)}
                     onSubmit={handleAddQuestion}
-                    token={token}
+                    token={token!}
                     existingQuestions={questions}
                 />
             )}
-            {editingQuestion && (
+            {editingQuestion && token && (
                 <FormModal
                     item={editingQuestion}
                     isOpen={!!editingQuestion}

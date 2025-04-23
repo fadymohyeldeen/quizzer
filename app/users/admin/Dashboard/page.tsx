@@ -45,7 +45,6 @@ export default function Dashboard() {
             return;
         }
 
-        // Wait for user data to be available
         if (user) {
             setLoading(false);
             if (user.role !== 'admin') {

@@ -31,7 +31,15 @@ ChartJS.register(
 function Page() {
   const { user } = useAuth();
   const router = useRouter();
-  const [analytics, setAnalytics] = useState({
+  const [analytics, setAnalytics] = useState<{
+    fields: number;
+    topics: number;
+    questions: number;
+    questionsPerField: {
+      labels: string[];
+      data: number[];
+    };
+  }>({
     fields: 0,
     topics: 0,
     questions: 0,
@@ -99,11 +107,9 @@ function Page() {
   }
 
   useEffect(() => {
-    // Fetch analytics data here
     const fetchAnalytics = async () => {
       try {
-        // Replace with your actual API calls
-        // This is mock data for demonstration
+       
         setAnalytics({
           fields: 5,
           topics: 15,
@@ -125,7 +131,6 @@ function Page() {
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-zinc-800 mb-8">Quiz Management</h1>
         
-        {/* Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {cards.map((card, index) => (
             <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -152,7 +157,6 @@ function Page() {
           ))}
         </div>
 
-        {/* Analytics Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-2xl font-bold text-zinc-800 mb-6">Analytics Overview</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

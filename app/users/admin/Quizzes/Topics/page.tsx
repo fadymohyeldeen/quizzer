@@ -281,7 +281,7 @@ function Page() {
         if (token) {
             fetchTopics();
         }
-    }, [token]); // This will run when the component mounts
+    }, [token]); 
 
     const handleUpdateTopic = (updatedTopic: Topic) => {
         setTopics(topics.map(topic =>
