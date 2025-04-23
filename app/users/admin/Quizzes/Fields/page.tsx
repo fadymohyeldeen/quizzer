@@ -1,10 +1,9 @@
 "use client"
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Loader from '@/app/components/Loader';
-import toast, { Toaster } from 'react-hot-toast';
+import toast, { Toaster, Toast } from 'react-hot-toast';
 
 interface Question {
     id: number;
@@ -169,29 +168,30 @@ const QuestionList = ({ questions }: { questions: Question[] }) => {
     );
 };
 
-const TopicList = ({ topics }: { topics: Topic[] }) => {
     const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
+    const [selectedField, setSelectedField] = useState<Field | null>(null);
+    const topics = selectedField?.topics || []; 
 
-    return (
-        <div className="pl-6 space-y-2">
-            {topics.map((topic) => (
-                <div key={topic.id} className="border-l-2 border-gray-200 pl-4">
-                    <div
-                        className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
-                        onClick={() => setExpandedTopic(expandedTopic === topic.id ? null : topic.id)}
-                    >
-                        <h3 className="font-medium">{topic.name}</h3>
-                        <span>{expandedTopic === topic.id ? '−' : '+'}</span>
+    const renderTopics = () => {
+        return (
+            <div className="pl-6 space-y-2">
+                {topics.map((topic) => (
+                    <div key={topic.id} className="border-l-2 border-gray-200 pl-4">
+                        <div
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                            onClick={() => setExpandedTopic(expandedTopic === topic.id ? null : topic.id)}
+                        >
+                            <h3 className="font-medium">{topic.name}</h3>
+                            <span>{expandedTopic === topic.id ? '−' : '+'}</span>
+                        </div>
+                        {expandedTopic === topic.id && <QuestionList questions={topic.questions} />}
                     </div>
-                    {expandedTopic === topic.id && <QuestionList questions={topic.questions} />}
-                </div>
-            ))}
-        </div>
-    );
-};
+                ))}
+            </div>
+        );
+    };
 
-// Add TopicsModal component
-const TopicsModal = ({ field, isOpen, onClose, token, onTopicDelete, onTopicEdit }: {
+const TopicsModal = ({ field, isOpen, onClose, onTopicDelete, onTopicEdit }: {
     field: Field;
     isOpen: boolean;
     onClose: () => void;
@@ -249,7 +249,6 @@ function Page() {
     const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
     const [selectedFieldId, setSelectedFieldId] = useState<number | null>(null);
     const [selectedField, setSelectedField] = useState<Field | null>(null);
-    const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
     useEffect(() => {
         if (!token) {
@@ -281,7 +280,6 @@ function Page() {
 
                 if (response.ok) {
                     const responseData: APIResponse = await response.json();
-                    // Assuming the API returns fields with their associated topics and questions
                     setFields(responseData.data as Field[]);
                 } else {
                     setError('Failed to fetch fields');
@@ -308,9 +306,8 @@ function Page() {
     };
 
     const handleAddTopic = async (topic: Topic) => {
-        // Update the fields state to include the new topic
         setFields(prevFields => prevFields.map(field => {
-            if (field.id === Number(topic.field_id)) {
+            if (field.id === Number(topic.id)) {
                 return {
                     ...field,
                     topics: [...(field.topics || []), topic]
@@ -319,14 +316,13 @@ function Page() {
             return field;
         }));
         
-        // Close the modal
         setIsAddTopicModalOpen(false);
         setSelectedFieldId(null);
         toast.success('Topic added successfully');
     };
 
     const handleDeleteField = async (fieldId: number) => {
-        toast((t) => (
+        toast((t:Toast) => (
             <div className="flex flex-col gap-2 text-center">
                 <p>This action will permanently remove this field along with its associated topics and questions, Are you sure?</p>
                 <div className="flex gap-2 justify-center">
@@ -373,7 +369,7 @@ function Page() {
     };
 
     const handleTopicDelete = async (topicId: number) => {
-        toast((t) => (
+        toast((t:Toast) => (
             <div className="flex flex-col gap-2 text-center">
                 <p>Are you sure you want to delete this topic?</p>
                 <div className="flex gap-2 justify-center">
@@ -390,7 +386,6 @@ function Page() {
                                 });
 
                                 if (response.ok) {
-                                    // Update the fields state to reflect the deleted topic
                                     setFields(fields.map(field => ({
                                         ...field,
                                         topics: field.topics.filter(t => t.id !== topicId)
@@ -418,7 +413,6 @@ function Page() {
     };
 
     const handleTopicEdit = async (topic: Topic) => {
-        // Update the fields state with the edited topic
         setFields(fields.map(field => ({
             ...field,
             topics: field.topics.map(t => 
@@ -426,7 +420,7 @@ function Page() {
             )
         })));
         
-        setSelectedField(null); // Close the modal
+        setSelectedField(null); 
         toast.success('Topic updated successfully');
     };
 
@@ -573,7 +567,7 @@ function Page() {
                     item={editingField}
                     isOpen={true}
                     onClose={() => setEditingField(null)}
-                    onSubmit={handleUpdateField}
+                    onSubmit={(item) => handleUpdateField(item as Field)}
                     token={token || ''}
                     mode="edit"
                     type="Field"
@@ -584,7 +578,7 @@ function Page() {
                 <FormModal
                     isOpen={true}
                     onClose={() => setIsAddModalOpen(false)}
-                    onSubmit={handleAddField}
+                    onSubmit={(item) => handleAddField(item as Field)}
                     token={token || ''}
                     mode="add"
                     type="Field"
@@ -598,7 +592,7 @@ function Page() {
                         setIsAddTopicModalOpen(false);
                         setSelectedFieldId(null);
                     }}
-                    onSubmit={handleAddTopic}
+                    onSubmit={(item) => handleAddTopic(item as Topic)}
                     token={token || ''}
                     mode="add"
                     type="Topic"
@@ -610,7 +604,7 @@ function Page() {
                     field={selectedField}
                     isOpen={!!selectedField}
                     onClose={() => setSelectedField(null)}
-                    token={token}
+                    token={token || ''}
                     onTopicDelete={handleTopicDelete}
                     onTopicEdit={handleTopicEdit}
                 />
