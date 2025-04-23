@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Loader from '@/app/components/Loader';
-import toast, { Toast } from 'react-hot-toast'; 
+import toast, { Toast, Toaster } from 'react-hot-toast'; 
 
 interface Question {
     id: number;
@@ -467,7 +467,7 @@ function Page() {
                     isOpen={isAddModalOpen}
                     onClose={() => setIsAddModalOpen(false)}
                     onSubmit={handleAddTopic}
-                    token={token}
+                    token={token || ''}
                     existingTopics={topics}
                 />
             )}
@@ -477,7 +477,7 @@ function Page() {
                     isOpen={!!editingTopic}
                     onClose={() => setEditingTopic(null)}
                     onSubmit={handleUpdateTopic}
-                    token={token}
+                    token={token || ''}
                     mode="edit"
                     existingTopics={topics}
                 />

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Loader from '@/app/components/Loader';
-import toast, { Toast } from 'react-hot-toast'; 
+import toast, { Toast, Toaster } from 'react-hot-toast'; 
 
 interface Question {
     id: number;

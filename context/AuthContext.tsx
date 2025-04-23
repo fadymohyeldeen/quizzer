@@ -6,7 +6,7 @@ import { loginUser, getCurrentUser } from '../services/authService';
 interface User {
     id: number;
     email: string;
-    userName: string;  // We'll keep this as camelCase in our frontend
+    userName: string;  
     role: string;
 }
 
@@ -42,16 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (savedToken) {
                 try {
                     const userData = await getCurrentUser(savedToken);
-                    // Transform the data to match our interface
                     const transformedUser = {
                         id: userData.id,
                         email: userData.email,
-                        userName: userData.user_name, // Convert user_name to userName
+                        userName: userData.user_name,
                         role: userData.role
                     };
                     setUserState(transformedUser);
                 } catch (error) {
-                    console.error('Error fetching user:', error); // Debug log
+                    console.error('Error fetching user:', error); 
                     logout();
                 }
             }
@@ -106,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null);
         try {
             const { user: userData, token: authToken } = await loginUser(email, password);
-            // Transform the user data here as well
             const transformedUser = {
                 id: userData.id,
                 email: userData.email,
